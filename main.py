@@ -111,6 +111,7 @@ def train_top_module(args):
     print (f'config: {args}')
 
     num_classes = DATASETS[args.dataset]['num_classes']
+    img_size=DATASETS[args.dataset]['img_size']
     img_mean, img_std = DATASETS[args.dataset]['mean'], DATASETS[args.dataset]['std']
     transform = Compose([
         ToTensor(),
@@ -139,7 +140,7 @@ def train_top_module(args):
 
     #train_loader, test_loader = MNIST_loaders()
 
-    net = ff.Net([784, 500, 500], device, args)  # 2 linear layers with 784=>500, 500=>500
+    net = ff.Net([img_size*img_size, 500, 500], device, args)  # 2 linear layers with 784=>500, 500=>500
 
     # start training
     for batch_idx, (images, target) in enumerate(trainloader):
