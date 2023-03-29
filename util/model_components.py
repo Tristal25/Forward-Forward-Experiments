@@ -70,7 +70,7 @@ class Layer(nn.Linear):
             # The following loss pushes pos (neg) samples to
             # values larger (smaller) than the self.threshold.
 
-
+            # exp is to ensure positive
             loss = torch.log(1 + torch.exp(torch.cat([
                 -(g_pos - self.threshold),
                 g_neg - self.threshold]))).mean()
