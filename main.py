@@ -159,7 +159,7 @@ def train_top_module(args):
 
         #net.train(x_pos, x_neg)
 
-
+    sigmoid = nn.Sigmoid()
 
     tot_num_batch=len(trainloader)
 
@@ -196,10 +196,13 @@ def train_top_module(args):
                 # The following loss pushes pos (neg) samples to
                 # values larger (smaller) than the self.threshold.
 
-                # exp is to ensure positive
+                # sigmoid=1/(1+exp)
                 loss = torch.log(1 + torch.exp(torch.cat([
                     -(g_pos - args.threshold),
                     g_neg - args.threshold]))).mean()
+
+
+                #loss=-sigmoid(g_pos - args.threshold).mean()+sigmoid(g_neg-args.threshold).mean()
 
                 curlayer.opt.zero_grad()
                 # this backward just compute the local derivative on current layer
