@@ -16,9 +16,9 @@ class Net(nn.Module):
 
     def __init__(self, dims, device, args):
         super().__init__()
-        self.layers = []
-        for d in range(len(dims) - 1):
-            self.layers += [Layer(dims[d], dims[d + 1], args=args).to(device)]
+        self.layers = [Layer(dims, args.hidden_size, args=args).to(device)]
+        for d in range(args.num_layers - 1):
+            self.layers += [Layer(args.hidden_size, args.hidden_size, args=args).to(device)]
 
     def predict(self, x):
         goodness_per_label = []

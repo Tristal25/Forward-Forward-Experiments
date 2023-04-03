@@ -56,6 +56,9 @@ def init_parser(parser):
     parser.add_argument('--test_batch_size', default=10000, type=int)
 
     parser.add_argument('--print_freq', default=20, type=int)
+    parser.add_argument('--num_layers', default=3, type=int)
+    parser.add_argument('--hidden_size', default=100, type=int)
+
     return parser
 
 
@@ -152,7 +155,7 @@ def train_top_module(args):
 
     #train_loader, test_loader = MNIST_loaders()
 
-    net = ff.Net([DATASETS[args.dataset]['num_channel']*img_size*img_size, 100, 100], device, args)  # 2 linear layers with 784=>500, 500=>500
+    net = ff.Net(DATASETS[args.dataset]['num_channel']*img_size*img_size, device, args)  # 2 linear layers with 784=>500, 500=>500
 
     # start training
 
