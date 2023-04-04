@@ -56,8 +56,11 @@ def init_parser(parser):
     parser.add_argument('--test_batch_size', default=10000, type=int)
 
     parser.add_argument('--print_freq', default=20, type=int)
-    parser.add_argument('--num_layers', default=3, type=int)
+    parser.add_argument('--num_layers', default=2, type=int)
     parser.add_argument('--hidden_size', default=100, type=int)
+    parser.add_argument('--random_seed', default=42, type=int)
+    parser.add_argument('--norm', default=True, type=str)
+    parser.add_argument('--dropout', default=0.2, type=str)
 
     return parser
 
@@ -84,11 +87,6 @@ def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
     return train_loader, test_loader
 
 
-
-
-
-
-
     
 def visualize_sample(data, name='', idx=0):
     reshaped = data[idx].cpu().reshape(28, 28)
@@ -106,7 +104,7 @@ def set_seed(seed_value=42):
     torch.cuda.manual_seed_all(seed_value)
 
 def train_top_module(args):
-    set_seed(42)
+    set_seed(args.random_seed)
 
     if args.device=='gpu' and torch.cuda.is_available():
         device = torch.device("cuda")
@@ -151,92 +149,36 @@ def train_top_module(args):
     print (f"Size of trainloader: {len(trainloader)}")
     print (f"Size of testloader: {len(testloader)}")
 
-
-
-    #train_loader, test_loader = MNIST_loaders()
-
-    net = ff.Net(DATASETS[args.dataset]['num_channel']*img_size*img_size, device, args)  # 2 linear layers with 784=>500, 500=>500
+    # create network
+    net = ff.Net(DATASETS[args.dataset]['num_channel']*img_size*img_size, device, args)
 
     # start training
-
-
-        #net.train(x_pos, x_neg)
-
-    sigmoid = nn.Sigmoid()
-
+    #sigmoid = nn.Sigmoid()
     tot_num_batch=len(trainloader)
 
     for train_batch_idx, (images, target) in enumerate(trainloader):
         images, target = images.to(device), target.to(device)
 
         print (f"train_batch: [{train_batch_idx}|{tot_num_batch-1}]")
+        net.train(images, target, num_classes)
 
-        for layeridx, curlayer in enumerate(net.layers):
-
-
-            if layeridx == 0:  # only first layer get data, otherwise get previous forward data
-                #print (f"images.shape: {images.shape}")
-
-                x_pos = ff.overlay_y_on_x(images, target)
-
-                rnd = torch.randperm(images.size(0))
-                x_neg = ff.overlay_y_on_x(images, target[rnd])
-
-            for epochidx in range(args.epochs):
-                if epochidx%args.print_freq==0:
-                    print (f"train_batch: [{train_batch_idx}|{tot_num_batch-1}] Layer: [{layeridx:}] Epoch: [{epochidx}]")
-
-
-                #g_pos = self.forward(x_pos).pow(2).mean(1)  # take mean on the axis=1
-                # output is [50000, 500] => [50000, 1]
-                g_pos = torch.mean(torch.pow(curlayer.forward(x_pos), 2), 1)
-                #print (f"g_pos:{g_pos.shape}")
-
-                #g_neg = self.forward(x_neg).pow(2).mean(1)
-                # output is [50000, 500] => [50000, 1]
-                g_neg = torch.mean(torch.pow(curlayer.forward(x_neg), 2), 1)
-
-                # The following loss pushes pos (neg) samples to
-                # values larger (smaller) than the self.threshold.
-
-                # sigmoid=1/(1+exp)
-                loss = torch.log(1 + torch.exp(torch.cat([
-                    -(g_pos - args.threshold),
-                    g_neg - args.threshold]))).mean()
-
-
-                #loss=-sigmoid(g_pos - args.threshold).mean()+sigmoid(g_neg-args.threshold).mean()
-
-                curlayer.opt.zero_grad()
-                # this backward just compute the local derivative on current layer
-                # and hence is not considered backpropagation.
-                loss.backward()
-                curlayer.opt.step()
-
-            # finished training on curlayer, pass to next layer
-            x_pos, x_neg=curlayer.forward(x_pos).detach(), curlayer.forward(x_neg).detach()
-
-
-        train_acc=net.predict(images).eq(target).float().mean().item()
-
-
+        train_acc = net.predict(images).eq(target).float().mean().item()
 
         # start evaluation
         with torch.no_grad():
             acc1_num_sum = 0
-            num_input_sum=0
+            num_input_sum = 0
             for val_batch_idx, (images, target) in enumerate(testloader):
                 images, target = images.to(device), target.to(device)
 
-                cur_val_acc=net.predict(images).eq(target).float().mean().item()
+                cur_val_acc = net.predict(images).eq(target).float().mean().item()
 
                 acc1_num_sum += float(cur_val_acc * images.shape[0])
-                num_input_sum+=images.shape[0]
+                num_input_sum += images.shape[0]
 
-
-
-            print('train acc:',train_acc)
+            print('train acc:', train_acc)
             print('test acc:', acc1_num_sum/num_input_sum)
+
 
 
     
