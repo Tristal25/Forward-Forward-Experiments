@@ -33,8 +33,8 @@ class Net(nn.Module):
         #self.print_freq = args.print_freq
         self.norm = args.norm
         self.dropout = args.dropout
-        self.layer_norm = nn.LayerNorm(args.hidden_size)
-        self.dropout_layer = nn.Dropout(p=args.dropout)
+        self.layer_norm = nn.LayerNorm(args.hidden_size).to(device)
+        self.dropout_layer = nn.Dropout(p=args.dropout).to(device)
         self.skip_connection = args.skip_connection
 
     def predict(self, x):
@@ -72,7 +72,6 @@ class Net(nn.Module):
                 if self.dropout != 0:
                     h_pos = self.dropout_layer(h_pos)
                     h_neg = self.dropout_layer(h_neg)
-
 
 class Layer(nn.Linear):
     def __init__(self, in_features, out_features,
