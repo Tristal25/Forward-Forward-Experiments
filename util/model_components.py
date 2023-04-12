@@ -3,6 +3,10 @@ import torch.nn as nn
 from torch.optim import Adam
 from tqdm import tqdm
 import random
+import math
+import numpy as np
+import cv2
+import torchvision.transforms as T
 
 def overlay_y_on_x(x, y, num_classes=10):
     """Replace the first 10 pixels of data [x] with one-hot-encoded label [y]
@@ -12,7 +16,24 @@ def overlay_y_on_x(x, y, num_classes=10):
     x_[range(x.shape[0]), y] = x.max()
     return x_
 
-def generate_data(x, y, num_classes=10, neg = False):
+def create_mask(size, batch_size, channels=1):
+    torch_mask = torch.rand(batch_size, channels, size, size)
+
+    transform = T.GaussianBlur(kernel_size=(3,3), sigma=(0.4, 1))
+    blurred_mask = transform(torch_mask)
+    mask = (blurred_mask > 0.5).float()
+    mask = torch.flatten(mask, start_dim=1)
+    return mask
+
+def generate_data(x, y=None, num_classes=10, neg = False, channels=1):
+    if y is None:
+        if not neg:
+            return x
+        else:
+            mask = create_mask(int(math.sqrt(x.shape[1] / channels)), x.shape[0], channels)
+            rand_ind = torch.randperm(x.shape[0])
+            return x * mask + x[rand_ind] * (1 - mask)
+
     if not neg:
         return overlay_y_on_x(x, y, num_classes)
     else:
@@ -24,11 +45,14 @@ def generate_data(x, y, num_classes=10, neg = False):
 
 class Net(nn.Module):
 
-    def __init__(self, dims, device, args):
+    def __init__(self, dataset, device, args):
         super().__init__()
+        dims = dataset['num_channel']*dataset['img_size']*dataset['img_size']
         self.layers = [Layer(dims, args.hidden_size, args=args).to(device)]
         for d in range(args.num_layers - 1):
             self.layers += [Layer(args.hidden_size, args.hidden_size, args=args).to(device)]
+        self.channels = dataset['num_channel']
+        self.num_classes = dataset['num_classes']
         self.num_epochs = args.epochs
         #self.print_freq = args.print_freq
         self.norm = args.norm
@@ -36,6 +60,7 @@ class Net(nn.Module):
         self.layer_norm = nn.LayerNorm(args.hidden_size).to(device)
         self.dropout_layer = nn.Dropout(p=args.dropout).to(device)
         self.skip_connection = args.skip_connection
+        self.unsupervised = args.unsupervised
 
     def predict(self, x):
         goodness_per_label = []
@@ -51,15 +76,15 @@ class Net(nn.Module):
         goodness_per_label = torch.cat(goodness_per_label, 1)
         return goodness_per_label.argmax(1)
 
-    def train(self, images, target, num_classes=10):
+    def train(self, images, target):
         for epoch in tqdm(range(self.num_epochs)):
-            #if epoch % self.print_freq == 0:
-                #print(f'epoch {epoch} ...')
-            h_pos = generate_data(images, target, num_classes)
-            h_neg = generate_data(images, target, num_classes, neg=True)
+            if self.unsupervised:
+                h_pos = generate_data(images, neg=False)
+                h_neg = generate_data(images, neg=True, channels=self.channels)
+            else:
+                h_pos = generate_data(images, target, self.num_classes)
+                h_neg = generate_data(images, target, self.num_classes, neg=True)
             for i, layer in enumerate(self.layers):
-                #if epoch % self.print_freq == 0:
-                    #print(f'training layer {i} ...')
                 h_prev_pos, h_prev_neg = h_pos, h_neg
                 h_pos, h_neg = layer.train(h_pos, h_neg)
 

@@ -62,6 +62,7 @@ def init_parser(parser):
     parser.add_argument('--norm', default=True, type=bool)
     parser.add_argument('--dropout', default=0.2, type=str)
     parser.add_argument('--skip_connection', default=True, type=bool)
+    parser.add_argument('--unsupervised', default=False, type=bool)
 
     return parser
 
@@ -151,7 +152,7 @@ def train_top_module(args):
     print (f"Size of testloader: {len(testloader)}")
 
     # create network
-    net = ff.Net(DATASETS[args.dataset]['num_channel']*img_size*img_size, device, args)
+    net = ff.Net(DATASETS[args.dataset], device, args)
 
     # start training
     #sigmoid = nn.Sigmoid()
@@ -161,7 +162,7 @@ def train_top_module(args):
         images, target = images.to(device), target.to(device)
 
         print (f"train_batch: [{train_batch_idx}|{tot_num_batch-1}]")
-        net.train(images, target, num_classes)
+        net.train(images, target)
 
         train_acc = net.predict(images).eq(target).float().mean().item()
 
