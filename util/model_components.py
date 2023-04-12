@@ -35,6 +35,7 @@ class Net(nn.Module):
         self.dropout = args.dropout
         self.layer_norm = nn.LayerNorm(args.hidden_size)
         self.dropout_layer = nn.Dropout(p=args.dropout)
+        self.skip_connection = args.skip_connection
 
     def predict(self, x):
         goodness_per_label = []
@@ -59,10 +60,15 @@ class Net(nn.Module):
             for i, layer in enumerate(self.layers):
                 #if epoch % self.print_freq == 0:
                     #print(f'training layer {i} ...')
+                h_prev_pos, h_prev_neg = h_pos, h_neg
                 h_pos, h_neg = layer.train(h_pos, h_neg)
+
                 if self.norm:
                     h_pos = self.layer_norm(h_pos)
                     h_neg = self.layer_norm(h_neg)
+                if self.skip_connection and i > 0:
+                    h_pos = h_pos + h_prev_pos
+                    h_neg = h_neg + h_prev_neg
                 if self.dropout != 0:
                     h_pos = self.dropout_layer(h_pos)
                     h_neg = self.dropout_layer(h_neg)

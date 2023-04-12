@@ -59,8 +59,9 @@ def init_parser(parser):
     parser.add_argument('--num_layers', default=2, type=int)
     parser.add_argument('--hidden_size', default=100, type=int)
     parser.add_argument('--random_seed', default=42, type=int)
-    parser.add_argument('--norm', default=True, type=str)
+    parser.add_argument('--norm', default=True, type=bool)
     parser.add_argument('--dropout', default=0.2, type=str)
+    parser.add_argument('--skip_connection', default=True, type=bool)
 
     return parser
 
