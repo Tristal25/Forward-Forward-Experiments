@@ -5,8 +5,9 @@ from tqdm import tqdm
 import random
 import math
 import numpy as np
-import cv2
+# import cv2
 import torchvision.transforms as T
+import torch.nn.functional as F
 
 def overlay_y_on_x(x, y, num_classes=10):
     """Replace the first 10 pixels of data [x] with one-hot-encoded label [y]
@@ -16,13 +17,16 @@ def overlay_y_on_x(x, y, num_classes=10):
     x_[range(x.shape[0]), y] = x.max()
     return x_
 
-def create_mask(size, batch_size, channels=1):
-    torch_mask = torch.rand(batch_size, channels, size, size)
+def create_mask(size, batch_size, channels=1, num_blurs=10):
+    # image = torch.randint(low=0, high=2, size=(channels, size, size)).float()
+    image = torch.rand(batch_size, channels, size, size)
+    
+    kernel = torch.tensor([1/4, 1/2, 1/4]).reshape((1, 1, 1, 3)).float()
+    for i in range(num_blurs):
+        image = F.conv2d(image, kernel, padding=(0, 1), groups=channels)
+        image = F.conv2d(image, kernel.transpose(2, 3), padding=(1, 0), groups=channels)
 
-    transform = T.GaussianBlur(kernel_size=(3,3), sigma=(0.4, 1))
-    blurred_mask = transform(torch_mask)
-    mask = (blurred_mask > 0.5).float()
-    mask = torch.flatten(mask, start_dim=1)
+    mask = (image > 0.5).float()
     return mask
 
 def generate_data(x, y=None, num_classes=10, neg = False, channels=1):
