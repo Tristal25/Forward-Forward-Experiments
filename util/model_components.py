@@ -104,14 +104,23 @@ class Layer(nn.Linear):
     def __init__(self, in_features, out_features,
                  bias=True, device=None, dtype=None, args=None):
         super().__init__(in_features, out_features, bias, device, dtype)
-        self.relu = torch.nn.ReLU()
         self.opt = Adam(self.parameters(), lr=args.lr)
         self.threshold = args.threshold
         self.norm = args.norm
+        if args.activation == 'relu':
+            self.activation = torch.nn.ReLU()
+        elif args.activation == 'tanh':
+            self.activation = torch.nn.Tanh()
+        elif args.activation == 'sigmoid':
+            self.activation = torch.nn.Sigmoid()
+        elif args.activation == 'elu':
+            self.activation = torch.nn.ELU()
+        else:
+            self.activation = torch.nn.LeakyReLU()
 
     def forward(self, x):
         x_direction = x / (x.norm(2, 1, keepdim=True) + 1e-4)
-        return self.relu(
+        return self.activation(
             torch.mm(x_direction, self.weight.T) +
             self.bias.unsqueeze(0))
 

@@ -60,9 +60,12 @@ def init_parser(parser):
     parser.add_argument('--hidden_size', default=100, type=int)
     parser.add_argument('--random_seed', default=42, type=int)
     parser.add_argument('--norm', default=True, type=bool)
-    parser.add_argument('--dropout', default=0.2, type=str)
+    parser.add_argument('--dropout', default=0.2, type=float)
     parser.add_argument('--skip_connection', default=True, type=bool)
     parser.add_argument('--unsupervised', default=False, type=bool)
+    parser.add_argument('--activation', type=str.lower,
+                        choices=['relu','tanh', 'sigmoid', 'leaky_relu', 'elu'],
+                        default='relu')
 
     return parser
 
