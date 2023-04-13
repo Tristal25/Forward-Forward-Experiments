@@ -4,8 +4,6 @@ from torch.optim import Adam
 from tqdm import tqdm
 import random
 import math
-import numpy as np
-import cv2
 import torchvision.transforms as T
 
 def overlay_y_on_x(x, y, num_classes=10):
@@ -37,9 +35,7 @@ def generate_data(x, y=None, num_classes=10, neg = False, channels=1):
     if not neg:
         return overlay_y_on_x(x, y, num_classes)
     else:
-        #print("correct y:", y[0:10])
         y_fake = [random.choice(list(set(range(num_classes)) - set([item]))) for item in y.tolist()]
-        #print("fake y:", y_fake[0:10])
         return overlay_y_on_x(x, y_fake, num_classes)
 
 
