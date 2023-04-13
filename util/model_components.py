@@ -17,24 +17,26 @@ def overlay_y_on_x(x, y, num_classes=10):
     x_[range(x.shape[0]), y] = x.max()
     return x_
 
-def create_mask(size, batch_size, channels=1, num_blurs=10):
+def create_mask(size, batch_size, channels=1, device=None, num_blurs=10):
     # image = torch.randint(low=0, high=2, size=(channels, size, size)).float()
-    image = torch.rand(batch_size, channels, size, size)
+    image = torch.rand(batch_size, channels, size, size).to(device)
     
-    kernel = torch.tensor([1/4, 1/2, 1/4]).reshape((1, 1, 1, 3)).float()
+    kernel_base = torch.tensor([1/4, 1/2, 1/4]).float()
+    kernel = kernel_base.repeat(channels, 1, 1, 1).view(channels, 1, 1, 3).to(device)
     for i in range(num_blurs):
         image = F.conv2d(image, kernel, padding=(0, 1), groups=channels)
         image = F.conv2d(image, kernel.transpose(2, 3), padding=(1, 0), groups=channels)
 
     mask = (image > 0.5).float()
+    mask = torch.flatten(mask, start_dim=1)
     return mask
 
-def generate_data(x, y=None, num_classes=10, neg = False, channels=1):
+def generate_data(x, y=None, num_classes=10, neg = False, channels=1, device=None):
     if y is None:
         if not neg:
             return x
         else:
-            mask = create_mask(int(math.sqrt(x.shape[1] / channels)), x.shape[0], channels)
+            mask = create_mask(int(math.sqrt(x.shape[1] / channels)), x.shape[0], channels, device)
             rand_ind = torch.randperm(x.shape[0])
             return x * mask + x[rand_ind] * (1 - mask)
 
@@ -65,6 +67,7 @@ class Net(nn.Module):
         self.dropout_layer = nn.Dropout(p=args.dropout).to(device)
         self.skip_connection = args.skip_connection
         self.unsupervised = args.unsupervised
+        self.device = device
 
     def predict(self, x):
         goodness_per_label = []
@@ -83,11 +86,11 @@ class Net(nn.Module):
     def train(self, images, target):
         for epoch in tqdm(range(self.num_epochs)):
             if self.unsupervised:
-                h_pos = generate_data(images, neg=False)
-                h_neg = generate_data(images, neg=True, channels=self.channels)
+                h_pos = generate_data(images, neg=False, device=self.device)
+                h_neg = generate_data(images, neg=True, channels=self.channels, device=self.device)
             else:
-                h_pos = generate_data(images, target, self.num_classes)
-                h_neg = generate_data(images, target, self.num_classes, neg=True)
+                h_pos = generate_data(images, target, self.num_classes, device=self.device)
+                h_neg = generate_data(images, target, self.num_classes, neg=True, device=self.device)
             for i, layer in enumerate(self.layers):
                 h_prev_pos, h_prev_neg = h_pos, h_neg
                 h_pos, h_neg = layer.train(h_pos, h_neg)
