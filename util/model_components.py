@@ -44,10 +44,10 @@ def generate_data(x, y=None, num_classes=10, neg = False, channels=1, device=Non
         return overlay_y_on_x(x, y_fake, num_classes)
 
 
-class Net(nn.Module):
+class Net():
 
     def __init__(self, dataset, device, args):
-        super().__init__()
+        # super().__init__()
         dims = dataset['num_channel']*dataset['img_size']*dataset['img_size']
         self.layers = [Layer(dims, args.hidden_size, args=args).to(device)]
         for d in range(args.num_layers - 1):
@@ -91,8 +91,8 @@ class Net(nn.Module):
                 h_pos, h_neg = layer.train(h_pos, h_neg)
 
                 if self.norm:
-                    h_pos = self.layer_norm(h_pos)
-                    h_neg = self.layer_norm(h_neg)
+                    h_pos = self.layer_norm(h_pos).detach()
+                    h_neg = self.layer_norm(h_neg).detach()
                 if self.skip_connection and i > 0:
                     h_pos = h_pos + h_prev_pos
                     h_neg = h_neg + h_prev_neg
@@ -125,8 +125,11 @@ class Layer(nn.Linear):
             self.bias.unsqueeze(0))
 
     def train(self, x_pos, x_neg):
-        g_pos = torch.mean(torch.pow(self.forward(x_pos), 2), 1)
-        g_neg = torch.mean(torch.pow(self.forward(x_neg), 2), 1)
+        pos_out = self.forward(x_pos)
+        neg_out = self.forward(x_neg)
+        
+        g_pos = torch.mean(torch.pow(pos_out, 2), 1)
+        g_neg = torch.mean(torch.pow(neg_out, 2), 1)
         # The following loss pushes pos (neg) samples to
         # values larger (smaller) than the self.threshold.
         loss = torch.log(1 + torch.exp(torch.cat([
@@ -137,4 +140,4 @@ class Layer(nn.Linear):
         # and hence is not considered backpropagation.
         loss.backward()
         self.opt.step()
-        return self.forward(x_pos).detach(), self.forward(x_neg).detach()
+        return pos_out.detach(), neg_out.detach()
