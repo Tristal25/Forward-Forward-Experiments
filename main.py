@@ -59,10 +59,10 @@ def init_parser(parser):
     parser.add_argument('--num_layers', default=2, type=int)
     parser.add_argument('--hidden_size', default=100, type=int)
     parser.add_argument('--random_seed', default=42, type=int)
-    parser.add_argument('--norm', default=True, action=argparse.BooleanOptionalAction)
+    parser.add_argument('--norm', default=0, type=int)
     parser.add_argument('--dropout', default=0.2, type=float)
-    parser.add_argument('--skip_connection', default=True, action=argparse.BooleanOptionalAction)
-    parser.add_argument('--unsupervised', default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument('--skip_connection', default=0, type=int)
+    parser.add_argument('--unsupervised', default=0, type=int)
     parser.add_argument('--activation', type=str.lower,
                         choices=['relu','tanh', 'sigmoid', 'leaky_relu', 'elu'],
                         default='relu')
