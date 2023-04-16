@@ -21,7 +21,6 @@ DATASETS = {
         'num_channel': 1,
         'mean': (0.1307,),
         'std': (0.3081,),
-
     },
 
     'cifar10': {
