@@ -11,6 +11,7 @@ import util.model_components as ff
 import argparse
 import random
 import numpy as np
+from argdata import argDict
 
 
 DATASETS = {
@@ -188,9 +189,11 @@ def train_top_module(args):
 
     
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='FF training script')
-    parser = init_parser(parser)
-    args = parser.parse_args()
-
+    # parser = argparse.ArgumentParser(description='FF training script')
+    # parser = init_parser(parser)
+    # args = parser.parse_args()
+    
+    # load args from dictionary argDict
+    args = argparse.Namespace(**argDict)
     train_top_module(args)
 
