@@ -7,7 +7,7 @@ argDict = {
         'train_batch_size': 50000,
         'test_batch_size': 10000,
         'print_freq': 20,
-        'num_layers': 2,
+        'num_layers': 4,
         'hidden_size': 100,
         'random_seed': 42,
         'norm': 0,
@@ -16,4 +16,5 @@ argDict = {
         'unsupervised': 0,
         'activation': 'relu',
         'margin': 0
+
     }

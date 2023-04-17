@@ -54,6 +54,7 @@ class Net():
         self.layers = [Layer(dims, args.hidden_size, args=args).to(device)]
         for d in range(args.num_layers - 1):
             self.layers += [Layer(args.hidden_size, args.hidden_size, args=args).to(device)]
+
         self.channels = dataset['num_channel']
         self.num_classes = dataset['num_classes']
         self.norm = args.norm
@@ -65,8 +66,9 @@ class Net():
         self.device = device
 
     def predict(self, x):
+        # try all 10 labels and return the one with the highest goodness
         goodness_per_label = []
-        for label in range(10):
+        for label in range(self.num_classes):
             h = overlay_y_on_x(x, label)
             goodness = []
             for layer in self.layers:
