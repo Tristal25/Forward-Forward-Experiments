@@ -28,12 +28,12 @@ def create_mask(size, batch_size, channels=1, device=None, num_blurs=10):
     mask = torch.flatten(mask, start_dim=1)
     return mask
 
-def generate_data(x, y=None, num_classes=10, neg = False, channels=1, device=None):
+def generate_data(x, y=None, num_classes=10, neg = False, channels=1):
     if y is None:
         if not neg:
             return x
         else:
-            mask = create_mask(int(math.sqrt(x.shape[1] / channels)), x.shape[0], channels, device)
+            mask = create_mask(int(math.sqrt(x.shape[1] / channels)), x.shape[0], channels, x.device)
             rand_ind = torch.randperm(x.shape[0])
             return x * mask + x[rand_ind] * (1 - mask)
 
@@ -81,11 +81,11 @@ class Net():
     def train(self, images, target):
         for epoch in tqdm(range(self.num_epochs)):
             if self.unsupervised:
-                h_pos = generate_data(images, neg=False, device=self.device)
-                h_neg = generate_data(images, neg=True, channels=self.channels, device=self.device)
+                h_pos = generate_data(images, neg=False, channels=self.channels)
+                h_neg = generate_data(images, neg=True, channels=self.channels)
             else:
-                h_pos = generate_data(images, target, self.num_classes, device=self.device)
-                h_neg = generate_data(images, target, self.num_classes, neg=True, device=self.device)
+                h_pos = generate_data(images, target, self.num_classes, False, self.channels)
+                h_neg = generate_data(images, target, self.num_classes, True, self.channels)
             for i, layer in enumerate(self.layers):
                 h_prev_pos, h_prev_neg = h_pos, h_neg
                 h_pos, h_neg = layer.train(h_pos, h_neg)

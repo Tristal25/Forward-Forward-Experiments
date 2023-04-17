@@ -1,0 +1,3 @@
+# add __pycache__ to the list of ignored files
+__pycache__/
+util/__pycache__/
