@@ -66,6 +66,7 @@ def init_parser(parser):
     parser.add_argument('--activation', type=str.lower,
                         choices=['relu','tanh', 'sigmoid', 'leaky_relu', 'elu'],
                         default='relu')
+    parser.add_argument('--margin', default=0.1, type=float)
 
     return parser
 

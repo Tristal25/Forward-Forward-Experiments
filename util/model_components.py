@@ -106,6 +106,7 @@ class Layer(nn.Linear):
         super().__init__(in_features, out_features, bias, device, dtype)
         self.opt = Adam(self.parameters(), lr=args.lr)
         self.threshold = args.threshold
+        self.margin = args.margin
         self.norm = args.norm
         if args.activation == 'relu':
             self.activation = torch.nn.ReLU()
@@ -133,8 +134,8 @@ class Layer(nn.Linear):
         # The following loss pushes pos (neg) samples to
         # values larger (smaller) than the self.threshold.
         loss = torch.log(1 + torch.exp(torch.cat([
-            -(g_pos - self.threshold),
-            g_neg - self.threshold]))).mean()
+            -(g_pos - self.threshold + self.margin),
+            g_neg - self.threshold - self.margin]))).mean()
         self.opt.zero_grad()
         # this backward just compute the local derivative on current layer
         # and hence is not considered backpropagation.
