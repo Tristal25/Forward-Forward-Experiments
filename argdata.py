@@ -1,10 +1,10 @@
 argDict = {
         'device': 'gpu',
         'dataset': 'mnist',
-        'threshold': 0.6,
-        'lr': 0.06,
-        'epochs': 100,
-        'train_batch_size': 10000,
+        'threshold': 2.0,
+        'lr': 0.03,
+        'epochs': 1000,
+        'train_batch_size': 50000,
         'test_batch_size': 10000,
         'print_freq': 20,
         'num_layers': 2,
@@ -14,5 +14,6 @@ argDict = {
         'dropout': 0.2,
         'skip_connection': 0,
         'unsupervised': 0,
-        'activation': 'relu'
+        'activation': 'relu',
+        'margin': 0
     }
