@@ -185,6 +185,8 @@ def train_top_module(args):
             print('train acc:', train_acc)
             print('test acc:', acc1_num_sum/num_input_sum)
 
+    return acc1_num_sum/num_input_sum
+
 
 
     
@@ -195,5 +197,25 @@ if __name__ == "__main__":
     
     # load args from dictionary argDict
     args = argparse.Namespace(**argDict)
-    train_top_module(args)
+    trainOne = True
 
+    if trainOne:
+        train_top_module(args)
+    else:
+        testacc = np.zeros((5, 5))
+        hidden_sizes = [100, 200, 300, 400, 500]
+        epochs = [60, 100, 140, 180, 220]
+        for i, hidden_size in enumerate(hidden_sizes):
+            for j, epoch in enumerate(epochs):
+                args.hidden_size = hidden_size
+                args.epochs = epoch
+                testacc[i][j] = train_top_module(args)
+        # plot the test accuracy
+        for i, accuracies in enumerate(testacc):
+            plt.plot(epochs, accuracies, marker='o', label=f"Hidden size: {hidden_sizes[i]}")
+
+        plt.xlabel('epoch')
+        plt.ylabel('test accuracy')
+        plt.title('test accuracy vs epoch vs hidden size')
+        plt.legend()
+        plt.savefig('testaccs.png')
