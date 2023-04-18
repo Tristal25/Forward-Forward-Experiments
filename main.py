@@ -197,25 +197,34 @@ if __name__ == "__main__":
     
     # load args from dictionary argDict
     args = argparse.Namespace(**argDict)
-    trainOne = True
+    trainOne = False
 
     if trainOne:
         train_top_module(args)
     else:
-        testacc = np.zeros((5, 5))
-        hidden_sizes = [100, 200, 300, 400, 500]
-        epochs = [60, 100, 140, 180, 220]
+        hidden_sizes = [300, 400, 500]
+        epochs = [60, 100, 300, 500, 1000]
+        thresholds = np.arange(0.5, 10.5, 0.5)
+        activations = ['relu','leaky_relu', 'elu']
+        testacc = np.zeros((len(activations), len(thresholds)))
         for i, hidden_size in enumerate(hidden_sizes):
             for j, epoch in enumerate(epochs):
-                args.hidden_size = hidden_size
-                args.epochs = epoch
-                testacc[i][j] = train_top_module(args)
-        # plot the test accuracy
-        for i, accuracies in enumerate(testacc):
-            plt.plot(epochs, accuracies, marker='o', label=f"Hidden size: {hidden_sizes[i]}")
+                for l, activation in enumerate(activations):
+                    for m, threshold in enumerate(thresholds):
+                        args.activation = activation
+                        args.threshold = threshold
+                        args.hidden_size = hidden_size
+                        args.epochs = epoch
+                        testacc[l][m] = train_top_module(args)
+                # plot the test accuracy
+                for index, accuracies in enumerate(testacc):
+                    plt.plot(thresholds, accuracies, marker='o', label=f"Activation: {activations[index]}")
 
-        plt.xlabel('epoch')
-        plt.ylabel('test accuracy')
-        plt.title('test accuracy vs epoch vs hidden size')
-        plt.legend()
-        plt.savefig('testaccs.png')
+                plt.xlabel('threshold')
+                plt.ylabel('test accuracy')
+                # range y axis from 0.8 to 1
+                plt.ylim(0.8, 1)
+                plt.title(f"test accuracy vs threshold vs activation (Hidden size: {hidden_size}, Epochs: {epoch})")
+                plt.legend()
+                plt.savefig(f"images/testacc2_{hidden_sizes[i]}_{epochs[j]}.png")
+                plt.clf()
