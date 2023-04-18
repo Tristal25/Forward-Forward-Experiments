@@ -43,6 +43,8 @@ def generate_data(x, y=None, num_classes=10, neg = False, channels=1):
         y_fake = [random.choice(list(set(range(num_classes)) - set([item]))) for item in y.tolist()]
         return overlay_y_on_x(x, y_fake, num_classes)
 
+def sigmoid(x):
+    return 1 / (1 + torch.exp(-x))
 
 class Net():
 
@@ -52,7 +54,6 @@ class Net():
         self.layers = [Layer(dims, args.hidden_size, args=args).to(device)]
         for d in range(args.num_layers - 1):
             self.layers += [Layer(args.hidden_size, args.hidden_size, args=args).to(device)]
-
         self.channels = dataset['num_channel']
         self.num_classes = dataset['num_classes']
         self.num_epochs = args.epochs
@@ -66,9 +67,8 @@ class Net():
         self.device = device
 
     def predict(self, x):
-        # try all 10 labels and return the one with the highest goodness
         goodness_per_label = []
-        for label in range(self.num_classes):
+        for label in range(10):
             h = overlay_y_on_x(x, label)
             goodness = []
             for layer in self.layers:
@@ -130,11 +130,14 @@ class Layer(nn.Linear):
     def train(self, x_pos, x_neg):
         pos_out = self.forward(x_pos)
         neg_out = self.forward(x_neg)
-        
+
         g_pos = torch.mean(torch.pow(pos_out, 2), 1)
         g_neg = torch.mean(torch.pow(neg_out, 2), 1)
         # The following loss pushes pos (neg) samples to
         # values larger (smaller) than the self.threshold.
+        #loss = ((self.threshold + self.margin - sigmoid(g_pos)) + \
+        #       (sigmoid(g_neg) - self.threshold + self.margin)).mean()
+
         loss = torch.log(1 + torch.exp(torch.cat([
             -(g_pos - self.threshold + self.margin),
             g_neg - self.threshold - self.margin]))).mean()
