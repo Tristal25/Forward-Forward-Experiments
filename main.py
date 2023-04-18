@@ -12,6 +12,7 @@ import argparse
 import random
 import numpy as np
 from argdata import argDict
+import time
 
 
 DATASETS = {
@@ -159,7 +160,7 @@ def train_top_module(args):
     net = ff.Net(DATASETS[args.dataset], device, args)
 
     # start training
-    #sigmoid = nn.Sigmoid()
+    t0 = time.time()
     tot_num_batch=len(trainloader)
 
     for train_batch_idx, (images, target) in enumerate(trainloader):
@@ -184,8 +185,9 @@ def train_top_module(args):
 
             print('train acc:', train_acc)
             print('test acc:', acc1_num_sum/num_input_sum)
+    t1 = time.time()
 
-    return acc1_num_sum/num_input_sum
+    return acc1_num_sum/num_input_sum, t1-t0
 
 
 
@@ -207,6 +209,7 @@ if __name__ == "__main__":
         thresholds = np.arange(0.5, 10.5, 0.5)
         activations = ['relu','leaky_relu', 'elu']
         testacc = np.zeros((len(activations), len(thresholds)))
+        total_time = np.zeros((len(activations), len(thresholds)))
         for i, hidden_size in enumerate(hidden_sizes):
             for j, epoch in enumerate(epochs):
                 for l, activation in enumerate(activations):
@@ -215,7 +218,7 @@ if __name__ == "__main__":
                         args.threshold = threshold
                         args.hidden_size = hidden_size
                         args.epochs = epoch
-                        testacc[l][m] = train_top_module(args)
+                        testacc[l][m], total_time[l][m] = train_top_module(args)
                 # plot the test accuracy
                 for index, accuracies in enumerate(testacc):
                     plt.plot(thresholds, accuracies, marker='o', label=f"Activation: {activations[index]}")
