@@ -43,8 +43,6 @@ def generate_data(x, y=None, num_classes=10, neg = False, channels=1):
         y_fake = [random.choice(list(set(range(num_classes)) - set([item]))) for item in y.tolist()]
         return overlay_y_on_x(x, y_fake, num_classes)
 
-def sigmoid(x):
-    return 1 / (1 + torch.exp(-x))
 
 class Net():
 
@@ -57,6 +55,8 @@ class Net():
 
         self.channels = dataset['num_channel']
         self.num_classes = dataset['num_classes']
+        self.num_epochs = args.epochs
+        #self.print_freq = args.print_freq
         self.norm = args.norm
         self.dropout = args.dropout
         self.layer_norm = nn.LayerNorm(args.hidden_size).to(device)
@@ -81,25 +81,26 @@ class Net():
         return goodness_per_label.argmax(1)
 
     def train(self, images, target):
-        if self.unsupervised:
-            h_pos = generate_data(images, neg=False, channels=self.channels)
-            h_neg = generate_data(images, neg=True, channels=self.channels)
-        else:
-            h_pos = generate_data(images, target, self.num_classes, False, self.channels)
-            h_neg = generate_data(images, target, self.num_classes, True, self.channels)
-        for i, layer in enumerate(self.layers):
-            h_prev_pos, h_prev_neg = h_pos, h_neg
-            h_pos, h_neg = layer.train(h_pos, h_neg)
+        for epoch in tqdm(range(self.num_epochs)):
+            if self.unsupervised:
+                h_pos = generate_data(images, neg=False, channels=self.channels)
+                h_neg = generate_data(images, neg=True, channels=self.channels)
+            else:
+                h_pos = generate_data(images, target, self.num_classes, False, self.channels)
+                h_neg = generate_data(images, target, self.num_classes, True, self.channels)
+            for i, layer in enumerate(self.layers):
+                h_prev_pos, h_prev_neg = h_pos, h_neg
+                h_pos, h_neg = layer.train(h_pos, h_neg)
 
-            if self.norm:
-                h_pos = self.layer_norm(h_pos).detach()
-                h_neg = self.layer_norm(h_neg).detach()
-            if self.skip_connection and i > 0:
-                h_pos = h_pos + h_prev_pos
-                h_neg = h_neg + h_prev_neg
-            if self.dropout != 0:
-                h_pos = self.dropout_layer(h_pos)
-                h_neg = self.dropout_layer(h_neg)
+                if self.norm:
+                    h_pos = self.layer_norm(h_pos).detach()
+                    h_neg = self.layer_norm(h_neg).detach()
+                if self.skip_connection and i > 0:
+                    h_pos = h_pos + h_prev_pos
+                    h_neg = h_neg + h_prev_neg
+                if self.dropout != 0:
+                    h_pos = self.dropout_layer(h_pos)
+                    h_neg = self.dropout_layer(h_neg)
 
 class Layer(nn.Linear):
     def __init__(self, in_features, out_features,
@@ -109,7 +110,6 @@ class Layer(nn.Linear):
         self.threshold = args.threshold
         self.margin = args.margin
         self.norm = args.norm
-        self.num_epochs = args.epochs
         if args.activation == 'relu':
             self.activation = torch.nn.ReLU()
         elif args.activation == 'tanh':
@@ -128,23 +128,19 @@ class Layer(nn.Linear):
             self.bias.unsqueeze(0))
 
     def train(self, x_pos, x_neg):
-        for epoch in tqdm(range(self.num_epochs)):
-            pos_out = self.forward(x_pos)
-            neg_out = self.forward(x_neg)
-
-            g_pos = torch.mean(torch.pow(pos_out, 2), 1)
-            g_neg = torch.mean(torch.pow(neg_out, 2), 1)
-            # The following loss pushes pos (neg) samples to
-            # values larger (smaller) than the self.threshold.
-            #loss = ((self.threshold + self.margin - sigmoid(g_pos)) + \
-            #       (sigmoid(g_neg) - self.threshold + self.margin)).mean()
-
-            loss = torch.log(1 + torch.exp(torch.cat([
-                -(g_pos - self.threshold + self.margin),
-                g_neg - self.threshold - self.margin]))).mean()
-            self.opt.zero_grad()
-            # this backward just compute the local derivative on current layer
-            # and hence is not considered backpropagation.
-            loss.backward()
-            self.opt.step()
-        return self.forward(x_pos).detach(), self.forward(x_neg).detach()
+        pos_out = self.forward(x_pos)
+        neg_out = self.forward(x_neg)
+        
+        g_pos = torch.mean(torch.pow(pos_out, 2), 1)
+        g_neg = torch.mean(torch.pow(neg_out, 2), 1)
+        # The following loss pushes pos (neg) samples to
+        # values larger (smaller) than the self.threshold.
+        loss = torch.log(1 + torch.exp(torch.cat([
+            -(g_pos - self.threshold + self.margin),
+            g_neg - self.threshold - self.margin]))).mean()
+        self.opt.zero_grad()
+        # this backward just compute the local derivative on current layer
+        # and hence is not considered backpropagation.
+        loss.backward()
+        self.opt.step()
+        return pos_out.detach(), neg_out.detach()
