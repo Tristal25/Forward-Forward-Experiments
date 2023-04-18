@@ -202,11 +202,11 @@ if __name__ == "__main__":
     if trainOne:
         train_top_module(args)
     else:
-        hidden_sizes = [100, 200, 300, 400, 500]
+        hidden_sizes = [300, 400, 500]
         epochs = [60, 100, 300, 500, 1000]
         thresholds = np.arange(0.5, 10.5, 0.5)
-        activations = ['relu','tanh', 'sigmoid', 'leaky_relu', 'elu']
-        testacc = np.zeros((5, len(thresholds)))
+        activations = ['relu','leaky_relu', 'elu']
+        testacc = np.zeros((len(activations), len(thresholds)))
         for i, hidden_size in enumerate(hidden_sizes):
             for j, epoch in enumerate(epochs):
                 for l, activation in enumerate(activations):
@@ -222,7 +222,9 @@ if __name__ == "__main__":
 
                 plt.xlabel('threshold')
                 plt.ylabel('test accuracy')
+                # range y axis from 0.8 to 1
+                plt.ylim(0.8, 1)
                 plt.title(f"test accuracy vs threshold vs activation (Hidden size: {hidden_size}, Epochs: {epoch})")
                 plt.legend()
-                plt.savefig(f"images/testacc_{hidden_sizes[i]}_{epochs[j]}.png")
+                plt.savefig(f"images/testacc2_{hidden_sizes[i]}_{epochs[j]}.png")
                 plt.clf()
