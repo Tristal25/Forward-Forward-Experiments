@@ -65,10 +65,15 @@ def init_parser(parser):
     parser.add_argument('--skip_connection', default=0, type=int)
     parser.add_argument('--unsupervised', default=0, type=int)
     parser.add_argument('--activation', type=str.lower,
-                        choices=['relu','tanh', 'sigmoid', 'leaky_relu', 'elu'],
+                        choices=['relu','tanh', 'sigmoid', 'leaky_relu', 'elu', 'gelu'],
                         default='relu')
     parser.add_argument('--margin', default=0.1, type=float)
-
+    parser.add_argument('--loss', type=str.lower,
+                        choices=['p_pos', 'logistic'],
+                        default='logistic')
+    parser.add_argument('--neg_data', type=str.lower,
+                        choices=['once', 'random'],
+                        default='random')
     return parser
 
 
@@ -199,7 +204,7 @@ if __name__ == "__main__":
     
     # load args from dictionary argDict
     args = argparse.Namespace(**argDict)
-    trainOne = False
+    trainOne = True
 
     if trainOne:
         train_top_module(args)
