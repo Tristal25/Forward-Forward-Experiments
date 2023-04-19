@@ -207,7 +207,8 @@ if __name__ == "__main__":
     trainOne = True
 
     if trainOne:
-        train_top_module(args)
+        acc ,timespent = train_top_module(args)
+        print(acc, timespent)
     else:
         hidden_sizes = [300, 400, 500]
         epochs = [60, 100, 300, 500, 1000]

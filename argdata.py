@@ -16,5 +16,5 @@ argDict = {
         'activation': 'elu',
         'margin': 0,
         'loss': 'logistic',
-        'neg_data': 'once'
+        'neg_data': 'random'
     }
