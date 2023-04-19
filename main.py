@@ -208,7 +208,8 @@ if __name__ == "__main__":
 
     if trainOne:
         acc ,timespent = train_top_module(args)
-        print(acc, timespent)
+        print (f"Test accuracy: {acc}")
+        print (f"Time spent: {timespent}")
     else:
         hidden_sizes = [300, 400, 500]
         epochs = [60, 100, 300, 500, 1000]
