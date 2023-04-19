@@ -70,7 +70,6 @@ class Net():
             for layer in self.layers:
                 h = layer(h)
                 goodness += [h.pow(2).mean(1)]
-
             goodness_per_label += [sum(goodness).unsqueeze(1)]
         goodness_per_label = torch.cat(goodness_per_label, 1)
         return goodness_per_label.argmax(1)
@@ -156,4 +155,4 @@ class Layer(nn.Linear):
         self.opt.zero_grad()
         loss.backward()
         self.opt.step()
-        return self.forward(x_pos).detach(), self.forward(x_neg).detach()
+        return pos_out.detach(), neg_out.detach()

@@ -15,6 +15,6 @@ argDict = {
         'unsupervised': 0,
         'activation': 'elu',
         'margin': 0,
-        'loss': 'logistic',
+        'loss': 'p_pos',
         'neg_data': 'random'
     }
