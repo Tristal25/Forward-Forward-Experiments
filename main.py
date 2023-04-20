@@ -8,12 +8,14 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize, Lambda
 from torch.utils.data import DataLoader
 import util.model_components as ff
+import util.unsupervised as ffu
 import argparse
 import random
 import numpy as np
 from argdata import argDict
 import time
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
 
 DATASETS = {
     'mnist': {
@@ -115,6 +117,48 @@ def set_seed(seed_value=42):
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed_all(seed_value)
 
+def divide(trainset):
+    # a collection of ones, twos...
+    divided = [[] for i in range(10)]
+    for (x, y) in trainset:
+        divided[y].append(x)
+    return divided
+
+def unsup_evaluate(model, trainloader, testloader, net):
+    # Extract representations for the training set
+    train_representations = []
+    train_labels = []
+    for images, target in trainloader:
+        with torch.no_grad():
+            reps = net.predict(images.to('cuda')).cpu().numpy()
+            train_representations.extend(reps.reshape(reps.shape[0], -1))  # Flatten representations to 2D
+            train_labels.extend(target.cpu().numpy())
+
+    # Extract representations for the test set
+    test_representations = []
+    test_labels = []
+    for images, target in testloader:
+        with torch.no_grad():
+            reps = net.predict(images.to('cuda')).cpu().numpy()
+            test_representations.extend(reps.reshape(reps.shape[0], -1))  # Flatten representations to 2D
+            test_labels.extend(target.numpy())
+
+    # Convert the train_labels and test_labels lists to numpy arrays
+    train_labels = np.array(train_labels)
+    test_labels = np.array(test_labels)
+
+    # Train a logistic regression classifier on the representations
+    clf = LogisticRegression(random_state=42, max_iter=1000)
+    clf.fit(train_representations, train_labels)
+
+    # Calculate train and test accuracy
+    train_predictions = clf.predict(train_representations)
+    train_acc = accuracy_score(train_labels, train_predictions)
+
+    test_predictions = clf.predict(test_representations)
+    test_acc = accuracy_score(test_labels, test_predictions)
+    return train_acc, test_acc
+
 def train_top_module(args):
     set_seed(args.random_seed)
 
@@ -149,6 +193,9 @@ def train_top_module(args):
             root='./data', train=True, download=True, transform=transform)
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform)
+        
+    if args.unsupervised:
+        divided = divide(trainset)
 
     print (f"Size of trainset: {len(trainset)}")
     print (f"Size of testset: {len(testset)}")
@@ -163,6 +210,8 @@ def train_top_module(args):
 
     # create network
     net = ff.Net(DATASETS[args.dataset], device, args)
+    if args.unsupervised:
+        net = ffu.UnsupNet(DATASETS[args.dataset], device, args, divided)
 
     # start training
     t0 = time.time()
@@ -173,7 +222,8 @@ def train_top_module(args):
 
         print (f"train_batch: [{train_batch_idx}|{tot_num_batch-1}]")
         net.train(images, target)
-
+        if args.unsupervised:
+            continue
         train_acc = net.predict(images).eq(target).float().mean().item()
 
         # start evaluation
@@ -190,9 +240,15 @@ def train_top_module(args):
 
             print('train acc:', train_acc)
             print('test acc:', acc1_num_sum/num_input_sum)
+    
     t1 = time.time()
 
-    return acc1_num_sum/num_input_sum, t1-t0
+    if args.unsupervised:
+        train_acc, acc = unsup_evaluate(net, trainloader, testloader, net)
+    else:
+        acc = acc1_num_sum/num_input_sum
+        
+    return acc, t1-t0
 
 
 
