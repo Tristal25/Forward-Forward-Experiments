@@ -47,7 +47,6 @@ def sigmoid(x):
     return 1 / (1 + torch.exp(-x))
 
 class Net():
-
     def __init__(self, dataset, device, args):
         # super().__init__()
         dims = dataset['num_channel']*dataset['img_size']*dataset['img_size']
@@ -57,14 +56,11 @@ class Net():
         self.channels = dataset['num_channel']
         self.num_classes = dataset['num_classes']
         self.num_epochs = args.epochs
-        #self.print_freq = args.print_freq
         self.dropout = args.dropout
         self.dropout_layer = nn.Dropout(p=args.dropout).to(device)
         self.skip_connection = args.skip_connection
         self.unsupervised = args.unsupervised
         self.neg_data = args.neg_data
-        self.device = device
-
 
     def predict(self, x):
         goodness_per_label = []
@@ -74,7 +70,6 @@ class Net():
             for layer in self.layers:
                 h = layer(h)
                 goodness += [h.pow(2).mean(1)]
-
             goodness_per_label += [sum(goodness).unsqueeze(1)]
         goodness_per_label = torch.cat(goodness_per_label, 1)
         return goodness_per_label.argmax(1)
@@ -118,23 +113,27 @@ class Layer(nn.Linear):
         self.margin = args.margin
         self.norm = args.norm
         self.loss = args.loss
-        if args.activation == 'relu':
-            self.activation = torch.nn.ReLU()
-        elif args.activation == 'tanh':
-            self.activation = torch.nn.Tanh()
-        elif args.activation == 'sigmoid':
-            self.activation = torch.nn.Sigmoid()
-        elif args.activation == 'elu':
-            self.activation = torch.nn.ELU()
-        elif args.activation == 'gelu':
-            self.activation = torch.nn.GELU()
+        self.activation = self.getActivation(args.activation)
+
+    def getActivation(self, activation):
+        if activation == 'relu':
+            return torch.nn.ReLU()
+        elif activation == 'tanh':
+            return torch.nn.Tanh()
+        elif activation == 'sigmoid':
+            return torch.nn.Sigmoid()
+        elif activation == 'elu':
+            return torch.nn.ELU()
+        elif activation == 'gelu':
+            return torch.nn.GELU()
         else:
-            self.activation = torch.nn.LeakyReLU()
+            return torch.nn.LeakyReLU()
 
     def forward(self, x):
-        x_direction = x / (x.norm(2, 1, keepdim=True) + 1e-4)
+        if self.norm:
+            x = x / (x.norm(2, 1, keepdim=True) + 1e-4)
         return self.activation(
-            torch.mm(x_direction, self.weight.T) +
+            torch.mm(x, self.weight.T) +
             self.bias.unsqueeze(0))
 
     def train(self, x_pos, x_neg):
