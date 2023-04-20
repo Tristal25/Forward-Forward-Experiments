@@ -43,16 +43,20 @@ class UnsupNet():
         self.divided = divided
 
     def predict(self, x):
-        encoded = x
-        for layer in self.layers:
-            encoded = layer(encoded)
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i == 0:
+                encoded = x
+            else:
+                encoded = encoded + x
         return encoded
     
     def pairpos(self, h_pos, targets):
         h_pos2 = torch.zeros(h_pos.size())
         for i, t in enumerate(targets):
             h_pos2[i] = random.choice(self.divided[t])
-        h_pos2 = torch.tensor(h_pos2).to("cuda")
+        # h_pos2 = torch.tensor(h_pos2).to("cuda")
+        h_pos2 = h_pos2.to("cuda")
         return h_pos2
 
     def train(self, images, target):
@@ -65,9 +69,6 @@ class UnsupNet():
                 h_prev_pos, h_prev_neg = h_pos, h_neg
                 h_pos, h_neg, h_pos2 = layer.train(h_pos, h_neg, h_pos2)
 
-                if self.norm:
-                    h_pos = self.layer_norm(h_pos).detach()
-                    h_neg = self.layer_norm(h_neg).detach()
                 if self.skip_connection and i > 0:
                     h_pos = h_pos + h_prev_pos
                     h_neg = h_neg + h_prev_neg
@@ -110,7 +111,12 @@ class UnsupLayer(nn.Linear):
     def Loss(self, x1, x2, x3, x4):
         sim_pos = F.cosine_similarity(x1, x2, dim=-1)
         sim_neg = F.cosine_similarity(x3, x4, dim=-1)
-        loss = torch.clamp(1 - sim_pos.unsqueeze(1) + sim_neg.unsqueeze(0), min=0.0)
+        g_sim_pos = torch.pow(sim_pos, 2)
+        g_sim_neg = torch.pow(sim_neg, 2)
+        # loss = torch.clamp(1 - sim_pos.unsqueeze(1) + sim_neg.unsqueeze(0), min=0.0)
+        loss = torch.log(1 + torch.exp(torch.cat([
+                -(g_sim_pos - self.threshold + self.margin),
+                g_sim_neg - self.threshold - self.margin]))).mean()
         return loss.mean()
     
     def train(self, x_pos, x_neg, x_pos2):

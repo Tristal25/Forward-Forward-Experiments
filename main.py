@@ -240,11 +240,13 @@ def train_top_module(args):
 
             print('train acc:', train_acc)
             print('test acc:', acc1_num_sum/num_input_sum)
-    acc = acc1_num_sum/num_input_sum
+    
     t1 = time.time()
 
     if args.unsupervised:
         train_acc, acc = unsup_evaluate(net, trainloader, testloader, net)
+    else:
+        acc = acc1_num_sum/num_input_sum
         
     return acc, t1-t0
 
