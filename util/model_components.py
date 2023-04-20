@@ -156,4 +156,4 @@ class Layer(nn.Linear):
         self.opt.zero_grad()
         loss.backward()
         self.opt.step()
-        return self.forward(x_pos).detach(), self.forward(x_neg).detach()
+        return pos_out.detach(), neg_out.detach()
