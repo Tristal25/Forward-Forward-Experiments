@@ -46,7 +46,7 @@ argDict = {
         'num_layers': 4,
         'hidden_size': 500,
         'random_seed': 42,
-        'norm': 0,
+        'norm': 1,
         'dropout': 0.2,
         'skip_connection': 0,
         'unsupervised': 1,
